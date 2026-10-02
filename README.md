@@ -1,4 +1,4 @@
-# Delta Client (Minecraft 26.2)
+# NullClient (Minecraft 26.2)
 
 ## Запуск в Windows
 
