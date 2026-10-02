@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NullClient — Launcher</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+
+    :root {
+      --bg:        #0d0f14;
+      --bg-card:   #151920;
+      --bg-hover:  #1c2130;
+      --accent:    #3d6bfc;
+      --accent2:   #7c3aed;
+      --text:      #e8eaf0;
+      --text-s:    #7a7f9a;
+      --text-m:    #4a4f66;
+      --border:    rgba(255,255,255,0.06);
+      --border-a:  rgba(61,107,252,0.35);
+      --red:       #ef4444;
+      --green:     #22c55e;
+    }
+
+    html, body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      width: 780px; height: 500px;
+      overflow: hidden;
+      /* ВАЖНО: убираем drag со всего body — только titlebar тянется */
+      -webkit-app-region: no-drag;
+      user-select: none;
+    }
+
+    /* ═══ TITLEBAR ═══════════════════════════════ */
+    .titlebar {
+      height: 40px;
+      background: rgba(10,11,16,0.98);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 14px;
+      -webkit-app-region: drag;   /* только тайтлбар тянется */
+      position: relative; z-index: 50;
+    }
+
+    .titlebar * { -webkit-app-region: no-drag; }
+
+    .tb-left { display: flex; align-items: center; gap: 10px; }
+
+    .logo-mark {
+      width: 22px; height: 22px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 800; color: #fff;
+      box-shadow: 0 0 14px rgba(61,107,252,0.55);
+      flex-shrink: 0;
+    }
+
+    .logo-name { font-size: 13px; font-weight: 600; letter-spacing: 0.2px; }
+
+    .logo-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--accent); box-shadow: 0 0 8px var(--accent);
+      animation: blink 2s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.3;transform:scale(.7)} }
+
+    .tb-right { display: flex; align-items: center; gap: 6px; }
+
+    .lang-pill {
+      display: flex; align-items: center; gap: 5px;
+      padding: 4px 10px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 6px; cursor: pointer;
+      font-size: 12px; color: var(--text-s);
+      transition: all .2s;
+    }
+    .lang-pill:hover { border-color: var(--border-a); color: var(--text); }
+
+    .wm { display: flex; gap: 4px; }
+    .wm-btn {
+      width: 26px; height: 26px; border-radius: 6px; border: none;
+      background: var(--bg-card); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-m); font-size: 12px; transition: all .2s;
+    }
+    .wm-btn:hover { background: var(--bg-hover); color: var(--text); }
+    .wm-btn.x:hover { background: var(--red); color: #fff; }
+
+    /* ═══ LAYOUT ══════════════════════════════════ */
+    .main { display: flex; height: 460px; }
+    .divider { width: 1px; background: var(--border); flex-shrink: 0; }
+
+    /* ═══ LEFT ════════════════════════════════════ */
+    .left {
+      width: 390px; padding: 22px 24px;
+      display: flex; flex-direction: column; gap: 14px;
+      position: relative; overflow: hidden;
+    }
+
+    .left::before {
+      content: '';
+      position: absolute; top: -60px; left: -40px;
+      width: 240px; height: 240px;
+      background: radial-gradient(circle, rgba(61,107,252,.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* badge */
+    .v-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px;
+      background: rgba(61,107,252,.14);
+      border: 1px solid rgba(61,107,252,.28);
+      border-radius: 20px;
+      font-size: 10px; font-weight: 700; color: #7a9bff;
+      letter-spacing: .6px; text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .v-badge::before {
+      content: ''; width: 5px; height: 5px; border-radius: 50%;
+      background: var(--accent); box-shadow: 0 0 6px var(--accent);
+    }
+
+    .game-title {
+      font-size: 27px; font-weight: 800; letter-spacing: -.6px; line-height: 1.1;
+      background: linear-gradient(135deg, #fff 35%, #7a9bff 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; margin-bottom: 8px;
+    }
+
+    .game-desc {
+      font-size: 11.5px; color: var(--text-s);
+      line-height: 1.65; max-width: 310px;
+    }
+
+    /* social */
+    .sec-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--text-m); margin-bottom: 8px;
+    }
+    .socials { display: flex; gap: 8px; }
+    .soc-btn {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--text-s); transition: all .25s;
+    }
+    .soc-btn:hover {
+      background: var(--bg-hover); border-color: var(--border-a);
+      color: var(--accent); transform: translateY(-2px);
+      box-shadow: 0 4px 14px rgba(61,107,252,.2);
+    }
+    .soc-btn:active { transform: translateY(0); }
+
+    /* changelog */
+    .clog {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 11px 14px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 10px; cursor: pointer; transition: all .25s;
+    }
+    .clog:hover { border-color: var(--border-a); background: var(--bg-hover); box-shadow: 0 0 20px rgba(61,107,252,.08); }
+    .clog:active { transform: scale(.99); }
+    .clog-l { display: flex; align-items: center; gap: 10px; }
+    .clog-ico {
+      width: 28px; height: 28px; border-radius: 7px;
+      background: rgba(61,107,252,.14);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--accent);
+    }
+    .clog-txt { font-size: 13px; font-weight: 500; }
+    .clog-tag {
+      font-size: 11px; color: var(--text-m);
+      padding: 2px 8px; background: rgba(255,255,255,.04); border-radius: 5px;
+    }
+    .clog-arr { color: var(--text-m); font-size: 13px; transition: transform .2s; }
+    .clog:hover .clog-arr { transform: translateX(3px); }
+
+    /* bottom controls */
+    .bottom { display: flex; align-items: center; gap: 8px; margin-top: auto; }
+
+    .ic-btn {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--text-s);
+      transition: all .25s; flex-shrink: 0;
+    }
+    .ic-btn:hover { background: var(--bg-hover); border-color: var(--border-a); color: var(--text); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.3); }
+    .ic-btn:active { transform: translateY(0); box-shadow: none; }
+
+    .session {
+      flex: 1; background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 8px 14px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .ses-ico {
+      width: 28px; height: 28px; border-radius: 7px;
+      background: rgba(61,107,252,.1);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--accent); flex-shrink: 0;
+    }
+    .ses-time { font-size: 13px; font-weight: 600; }
+    .ses-cnt  { font-size: 10px; color: var(--text-m); margin-top: 1px; }
+
+    /* tooltip */
+    [data-tip] { position: relative; }
+    [data-tip]:hover::after {
+      content: attr(data-tip);
+      position: absolute; bottom: calc(100% + 6px); left: 50%;
+      transform: translateX(-50%);
+      background: #1a1f2e; border: 1px solid var(--border);
+      color: var(--text); font-size: 10px;
+      padding: 4px 8px; border-radius: 5px;
+      white-space: nowrap; pointer-events: none; z-index: 200;
+    }
+
+    /* ═══ RIGHT ═══════════════════════════════════ */
+    .right { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    .banner { flex: 1; position: relative; overflow: hidden; }
+
+    .banner-img {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%; object-fit: cover;
+      filter: brightness(.85);
+    }
+
+    .banner-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(
+        to bottom,
+        rgba(13,15,20,.1) 0%,
+        transparent 40%,
+        rgba(13,15,20,.55) 80%,
+        rgba(13,15,20,.95) 100%
+      );
+    }
+
+    .particles { position: absolute; inset: 0; pointer-events: none; }
+    .particle {
+      position: absolute; width: 1px;
+      background: linear-gradient(to bottom, transparent, rgba(180,210,255,.3), transparent);
+      animation: rain linear infinite;
+    }
+    @keyframes rain {
+      0%   { transform: translateY(-80px) rotate(8deg); opacity: 0; }
+      10%  { opacity: 1; }
+      90%  { opacity: .4; }
+      100% { transform: translateY(500px) rotate(8deg); opacity: 0; }
+    }
+
+    .banner-dots {
+      position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 5px; z-index: 2;
+    }
+    .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: rgba(255,255,255,.2); cursor: pointer; transition: all .3s;
+    }
+    .dot.active {
+      background: var(--accent); box-shadow: 0 0 7px var(--accent);
+      width: 16px; border-radius: 3px;
+    }
+
+    /* ═══ LAUNCH ══════════════════════════════════ */
+    .launch-wrap {
+      padding: 14px;
+      background: rgba(10,11,16,.94);
+      border-top: 1px solid var(--border);
+      backdrop-filter: blur(14px);
+    }
+
+    .launch-btn {
+      width: 100%; height: 50px;
+      background: linear-gradient(135deg, #1e4de0 0%, #3d6bfc 55%, #567aff 100%);
+      border: none; border-radius: 12px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px; font-weight: 800; color: #fff;
+      letter-spacing: 2px; text-transform: uppercase;
+      position: relative; overflow: hidden;
+      transition: transform .25s, box-shadow .25s;
+      box-shadow: 0 4px 28px rgba(61,107,252,.5);
+    }
+    .launch-btn::before {
+      content: '';
+      position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.18), transparent);
+      transition: left .55s;
+    }
+    .launch-btn:hover::before { left: 100%; }
+    .launch-btn:hover  { transform: translateY(-2px); box-shadow: 0 8px 36px rgba(61,107,252,.65); }
+    .launch-btn:active { transform: translateY(0);    box-shadow: 0 2px 10px rgba(61,107,252,.4); }
+    .launch-btn:disabled {
+      background: linear-gradient(135deg,#162e8a,#243f9e);
+      cursor: not-allowed; transform: none; box-shadow: none;
+    }
+
+    .pbar {
+      width: 100%; height: 4px;
+      background: rgba(255,255,255,.06); border-radius: 2px;
+      margin-top: 8px; overflow: hidden; display: none;
+    }
+    .pbar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 2px; width: 0%;
+      transition: width .35s ease;
+      box-shadow: 0 0 8px var(--accent);
+    }
+    .pbar.on { display: block; }
+
+    .launch-status {
+      font-size: 10px; color: var(--text-m);
+      text-align: center; margin-top: 5px; min-height: 14px;
+    }
+    .launch-status.err { color: var(--red); }
+    .launch-status.ok  { color: var(--green); }
+
+    /* ═══ FADE-IN ═════════════════════════════════ */
+    .fi { animation: fi .4s ease both; }
+    @keyframes fi { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+    .fi:nth-child(1){animation-delay:.05s}
+    .fi:nth-child(2){animation-delay:.12s}
+    .fi:nth-child(3){animation-delay:.18s}
+    .fi:nth-child(4){animation-delay:.25s}
+
+    /* ═══ MODAL ═══════════════════════════════════ */
+    .overlay {
+      display: none; position: fixed; inset: 0; z-index: 300;
+      background: rgba(0,0,0,.65); backdrop-filter: blur(5px);
+      align-items: center; justify-content: center;
+    }
+    .overlay.open { display: flex; animation: fi .2s ease; }
+
+    .modal {
+      background: #12151e;
+      border: 1px solid var(--border);
+      border-radius: 16px; width: 460px; padding: 24px;
+      box-shadow: 0 32px 80px rgba(0,0,0,.7);
+    }
+
+    .modal-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .modal-title {
+      font-size: 15px; font-weight: 700;
+      display: flex; align-items: center; gap: 8px; color: var(--text);
+    }
+    .modal-title svg { color: var(--accent); }
+
+    .m-close {
+      width: 28px; height: 28px; border-radius: 7px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      color: var(--text-m); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; transition: all .2s;
+    }
+    .m-close:hover { background: var(--red); color: #fff; border-color: var(--red); }
+
+    .s-label  { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--text-m); margin-bottom: 6px; }
+    .s-desc   { font-size: 11px; color: var(--text-s); margin-bottom: 9px; line-height: 1.5; }
+
+    .path-row { display: flex; gap: 8px; align-items: center; }
+
+    .path-in {
+      flex: 1; background: var(--bg-card);
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 9px 12px; color: var(--text);
+      font-size: 11px; font-family: monospace;
+      outline: none; transition: border-color .2s;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .path-in:focus { border-color: var(--border-a); }
+
+    .m-btn {
+      padding: 9px 14px; border-radius: 8px; cursor: pointer;
+      font-size: 11px; font-weight: 600; white-space: nowrap;
+      transition: all .2s;
+    }
+    .m-btn.ghost {
+      background: var(--bg-card); border: 1px solid var(--border); color: var(--text-s);
+    }
+    .m-btn.ghost:hover { background: var(--bg-hover); border-color: var(--border-a); color: var(--text); }
+    .m-btn.blue  {
+      background: rgba(61,107,252,.12); border: 1px solid rgba(61,107,252,.3); color: #7a9bff;
+    }
+    .m-btn.blue:hover  { background: rgba(61,107,252,.22); }
+    .m-btn.solid {
+      background: linear-gradient(135deg,#1e4de0,#3d6bfc);
+      border: none; color: #fff;
+      box-shadow: 0 2px 14px rgba(61,107,252,.4);
+    }
+    .m-btn.solid:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(61,107,252,.5); }
+    .m-btn.solid:active{ transform: none; }
+
+    .m-divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+    .m-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+
+    .m-notice { font-size: 10px; color: var(--green); text-align: center; margin-top: 8px; min-height: 14px; }
+
+    /* ═══ UPDATE BADGE ════════════════════════════ */
+    .update-bar {
+      display: flex; align-items: center; gap: 7px;
+      padding: 6px 12px;
+      background: rgba(61,107,252,.08);
+      border: 1px solid rgba(61,107,252,.18);
+      border-radius: 8px;
+      font-size: 10px; color: var(--text-s);
+      transition: all .3s;
+      margin-bottom: 2px;
+      overflow: hidden;
+    }
+    .update-bar.hidden { display: none; }
+    .update-bar.ok    { background: rgba(34,197,94,.08);  border-color: rgba(34,197,94,.22);  color: var(--green); }
+    .update-bar.err   { background: rgba(239,68,68,.08);  border-color: rgba(239,68,68,.22);  color: var(--red); }
+    .update-bar.skip  { background: rgba(255,255,255,.04); border-color: var(--border);        color: var(--text-m); }
+
+    .upd-spinner {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+      border: 1.5px solid rgba(61,107,252,.3);
+      border-top-color: var(--accent);
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .upd-dot {
+      width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+      background: currentColor;
+    }
+    .upd-text { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .upd-tag  {
+      font-size: 9px; font-weight: 700; letter-spacing: .5px;
+      padding: 1px 6px; border-radius: 4px;
+      background: rgba(61,107,252,.15); color: #7a9bff;
+      flex-shrink: 0;
+    }
+    .update-bar.ok  .upd-tag { background: rgba(34,197,94,.15); color: var(--green); }
+    .update-bar.err .upd-tag { background: rgba(239,68,68,.15); color: var(--red); }
+  </style>
+</head>
+<body>
+
+  <!-- TITLEBAR -->
+  <div class="titlebar">
+    <div class="tb-left">
+      <div class="logo-mark">N</div>
+      <span class="logo-name">NullClient</span>
+      <div class="logo-dot"></div>
+    </div>
+    <div class="tb-right">
+      <div class="lang-pill">
+        <span>🇷🇺</span><span>Русский</span>
+        <span style="font-size:9px;color:var(--text-m)">▼</span>
+      </div>
+      <div class="wm">
+        <button class="wm-btn"   onclick="window.electronAPI.minimize()">─</button>
+        <button class="wm-btn x" onclick="window.electronAPI.close()">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- ── LEFT ── -->
+    <div class="left">
+
+      <div class="fi">
+        <div class="v-badge">Fabric · 26.2</div>
+        <h1 class="game-title">Minecraft<br>26.2</h1>
+        <p class="game-desc">
+          NullClient для Minecraft 26.2 — современный чит-клиент с мощными
+          функциями боя, движения и визуала. Включает KillAura, Fly, X-Ray
+          и AutoTotem, оставаясь незаметным для популярных античитов.
+        </p>
+      </div>
+
+      <div class="fi">
+        <div class="sec-label">Наши соцсети</div>
+        <div class="socials">
+          <div class="soc-btn" data-tip="Telegram"
+               onclick="window.electronAPI.openURL('https://t.me/NullDLC')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="clog fi">
+        <div class="clog-l">
+          <div class="clog-ico">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+              <line x1="8" y1="18" x2="21" y2="18"/>
+              <circle cx="3" cy="6" r="1" fill="currentColor"/>
+              <circle cx="3" cy="12" r="1" fill="currentColor"/>
+              <circle cx="3" cy="18" r="1" fill="currentColor"/>
+            </svg>
+          </div>
+          <span class="clog-txt">Изменения</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="clog-tag">client-v1.0.3</span>
+          <span class="clog-arr">›</span>
+        </div>
+      </div>
+
+      <div class="bottom fi">
+        <button class="ic-btn" data-tip="Настройки" onclick="openSettings()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+        <button class="ic-btn" data-tip="Аккаунты">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+        </button>
+        <div class="session">
+          <div class="ses-ico">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <div>
+            <div class="ses-time" id="sesTime">0 ч 0 мин</div>
+            <div class="ses-cnt"  id="sesCnt">0 запусков</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── RIGHT ── -->
+    <div class="right">
+      <div class="banner">
+        <img class="banner-img" id="bannerImg" src="assets/banner.png" draggable="false" alt="" />
+        <div class="banner-overlay"></div>
+        <div class="particles" id="pts"></div>
+        <div class="banner-dots">
+          <div class="dot active"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+      </div>
+
+      <div class="launch-wrap">
+        <!-- Update status bar -->
+        <div class="update-bar" id="updateBar">
+          <div class="upd-spinner" id="updSpinner"></div>
+          <div class="upd-dot hidden" id="updDot"></div>
+          <span class="upd-text" id="updText">Проверка обновлений...</span>
+          <span class="upd-tag" id="updTag"></span>
+        </div>
+
+        <button class="launch-btn" id="launchBtn" onclick="handleLaunch()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          <span id="launchTxt">Запуск</span>
+        </button>
+        <div class="pbar" id="pbar"><div class="pbar-fill" id="pbarFill"></div></div>
+        <div class="launch-status" id="launchSt"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── SETTINGS MODAL ── -->
+  <div class="overlay" id="settingsModal" onclick="overlayClick(event)">
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-title">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          Настройки
+        </div>
+        <button class="m-close" onclick="closeSettings()">✕</button>
+      </div>
+
+      <div style="margin-bottom:16px">
+        <div class="s-label">Папка игры (.minecraft)</div>
+        <div class="s-desc">Директория где лежат versions/, libraries/, mods/</div>
+        <div class="path-row">
+          <input class="path-in" id="gameDirIn" type="text" readonly placeholder="Авто..." />
+          <button class="m-btn ghost" onclick="browseSettingsPath('gameDir')">Обзор</button>
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px">
+        <div class="s-label">Путь к Java (javaw.exe)</div>
+        <div class="s-desc">Оставь пустым для автопоиска. Если игра не запускается — укажи вручную.</div>
+        <div class="path-row">
+          <input class="path-in" id="javaIn" type="text" readonly placeholder="Авто..." />
+          <button class="m-btn ghost" onclick="browseSettingsPath('java')">Обзор</button>
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px">
+        <div class="s-label">Путь установки модов</div>
+        <div class="s-desc">Папка <b style="color:var(--text)">mods</b>. По умолчанию — gameDir/mods.</div>
+        <div class="path-row">
+          <input class="path-in" id="modsIn" type="text" readonly placeholder="Авто..." />
+          <button class="m-btn ghost" onclick="browseSettingsPath('mods')">Обзор</button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;margin-bottom:16px">
+        <div style="flex:1">
+          <div class="s-label">RAM мин (MB)</div>
+          <input class="path-in" id="minRamIn" type="number" min="256" max="32768" style="width:100%;-webkit-user-select:text;user-select:text;cursor:text" />
+        </div>
+        <div style="flex:1">
+          <div class="s-label">RAM макс (MB)</div>
+          <input class="path-in" id="maxRamIn" type="number" min="512" max="32768" style="width:100%;-webkit-user-select:text;user-select:text;cursor:text" />
+        </div>
+      </div>
+
+      <div class="m-divider"></div>
+
+      <div>
+        <div class="s-label">Действия</div>
+        <button class="m-btn blue" onclick="window.electronAPI.settingsOpenFolder()">
+          📁&nbsp; Открыть папку mods
+        </button>
+      </div>
+
+      <div class="m-footer">
+        <button class="m-btn ghost" onclick="closeSettings()">Отмена</button>
+        <button class="m-btn solid" onclick="saveSettings()">Сохранить</button>
+      </div>
+      <div class="m-notice" id="mNotice"></div>
+    </div>
+  </div>
+
+  <script>
+    // ── Баннер ────────────────────────────────────
+    ;(function() {
+      const img = document.getElementById('bannerImg')
+      if (window.electronAPI?.getAssetPath) {
+        const p = window.electronAPI.getAssetPath('banner.png')
+        img.src = 'file:///' + p.replace(/\\/g, '/')
+      }
+    })()
+
+    // ── Дождь ─────────────────────────────────────
+    ;(function() {
+      const c = document.getElementById('pts')
+      for (let i = 0; i < 22; i++) {
+        const p = document.createElement('div')
+        p.className = 'particle'
+        p.style.cssText = `left:${Math.random()*100}%;height:${22+Math.random()*42}px;animation-duration:${1.6+Math.random()*2.4}s;animation-delay:${-Math.random()*4}s;opacity:${.12+Math.random()*.32}`
+        c.appendChild(p)
+      }
+    })()
+
+    // ── Статистика ────────────────────────────────
+    const stats = JSON.parse(localStorage.getItem('nc_stats') || '{"launches":0}')
+    document.getElementById('sesCnt').textContent = stats.launches + ' запусков'
+
+    // ── Прогресс запуска ─────────────────────────
+    window.electronAPI.onLaunchProgress((d) => {
+      const bar  = document.getElementById('pbar')
+      const fill = document.getElementById('pbarFill')
+      const st   = document.getElementById('launchSt')
+      bar.classList.add('on')
+      fill.style.width = d.percent + '%'
+      st.textContent   = d.detail || ''
+    })
+
+    // ── Прогресс скачивания ───────────────────────
+    window.electronAPI.onDownloadProgress((d) => {
+      const bar  = document.getElementById('pbar')
+      const fill = document.getElementById('pbarFill')
+      const st   = document.getElementById('launchSt')
+      bar.classList.add('on')
+
+      if (d.status === 'exists') {
+        const pct = Math.round(((d.fileIndex + 1) / d.fileCount) * 100)
+        fill.style.width = pct + '%'
+        st.textContent = '✓ ' + d.file + ' уже установлен'
+        return
+      }
+      const share = 100 / d.fileCount
+      const total = Math.round(d.fileIndex * share + (d.percent / 100) * share)
+      fill.style.width = total + '%'
+      st.textContent = 'Скачивание ' + d.file + ' — ' + d.percent + '%'
+    })
+
+    // ── Запуск ────────────────────────────────────
+    let busy = false
+
+    async function handleLaunch() {
+      if (busy) return
+      busy = true
+
+      const btn  = document.getElementById('launchBtn')
+      const bar  = document.getElementById('pbar')
+      const fill = document.getElementById('pbarFill')
+      const st   = document.getElementById('launchSt')
+      const txt  = document.getElementById('launchTxt')
+
+      btn.disabled = true
+      bar.classList.add('on')
+      fill.style.width = '0%'
+      fill.style.background = ''
+      txt.textContent = 'Загрузка...'
+      st.className = 'launch-status'
+      st.textContent = 'Подготовка...'
+
+      const res = await window.electronAPI.launch()
+
+      if (res.success) {
+        fill.style.width = '100%'
+        st.textContent = 'Minecraft запущен!'
+        st.className = 'launch-status ok'
+        txt.textContent = 'Запущено'
+        stats.launches++
+        localStorage.setItem('nc_stats', JSON.stringify(stats))
+        document.getElementById('sesCnt').textContent = stats.launches + ' запусков'
+        setTimeout(resetLaunch, 3000)
+      } else {
+        fill.style.width = '100%'
+        fill.style.background = 'linear-gradient(90deg,#ef4444,#b91c1c)'
+        st.textContent = res.error || 'Ошибка запуска'
+        st.className = 'launch-status err'
+        txt.textContent = 'Ошибка'
+        setTimeout(resetLaunch, 5000)
+      }
+    }
+
+    function resetLaunch() {
+      const btn  = document.getElementById('launchBtn')
+      const bar  = document.getElementById('pbar')
+      const fill = document.getElementById('pbarFill')
+      const st   = document.getElementById('launchSt')
+      const txt  = document.getElementById('launchTxt')
+      btn.disabled = false
+      bar.classList.remove('on')
+      fill.style.width = '0%'
+      fill.style.background = ''
+      txt.textContent = 'Запуск'
+      st.textContent = ''
+      st.className = 'launch-status'
+      busy = false
+    }
+
+    // ── Настройки ─────────────────────────────────
+    async function openSettings() {
+      const s = await window.electronAPI.settingsGet()
+      document.getElementById('gameDirIn').value = s.gameDir         || ''
+      document.getElementById('javaIn').value    = s.javaPath        || ''
+      document.getElementById('modsIn').value    = s.modsPath        || ''
+      document.getElementById('minRamIn').value  = s.minRam          || 512
+      document.getElementById('maxRamIn').value  = s.maxRam          || 2048
+      document.getElementById('settingsModal').classList.add('open')
+    }
+
+    function closeSettings() {
+      document.getElementById('settingsModal').classList.remove('open')
+      document.getElementById('mNotice').textContent = ''
+    }
+
+    function overlayClick(e) {
+      if (e.target === document.getElementById('settingsModal')) closeSettings()
+    }
+
+    async function browseSettingsPath(type) {
+      const p = await window.electronAPI.settingsBrowse(type)
+      if (!p) return
+      if (type === 'java')    document.getElementById('javaIn').value    = p
+      if (type === 'gameDir') document.getElementById('gameDirIn').value = p
+      if (type === 'mods')    document.getElementById('modsIn').value    = p
+    }
+
+    async function saveSettings() {
+      const minRam = parseInt(document.getElementById('minRamIn').value) || 512
+      const maxRam = parseInt(document.getElementById('maxRamIn').value) || 2048
+      await window.electronAPI.settingsSave({
+        gameDir:   document.getElementById('gameDirIn').value.trim(),
+        javaPath:  document.getElementById('javaIn').value.trim(),
+        modsPath:  document.getElementById('modsIn').value.trim(),
+        minRam:    Math.min(minRam, maxRam),
+        maxRam:    Math.max(minRam, maxRam),
+      })
+      const n = document.getElementById('mNotice')
+      n.textContent = '✓ Сохранено'
+      setTimeout(() => { n.textContent = ''; closeSettings() }, 1200)
+    }
+
+    // ── Авто-обновление ───────────────────────────
+    ;(function () {
+      const bar     = document.getElementById('updateBar')
+      const spinner = document.getElementById('updSpinner')
+      const dot     = document.getElementById('updDot')
+      const text    = document.getElementById('updText')
+      const tag     = document.getElementById('updTag')
+
+      function setBar(state, msg, tagTxt) {
+        // state: 'loading' | 'ok' | 'err' | 'skip'
+        bar.className = 'update-bar'
+        if (state === 'loading') {
+          spinner.classList.remove('hidden')
+          dot.classList.add('hidden')
+        } else {
+          spinner.classList.add('hidden')
+          dot.classList.remove('hidden')
+          bar.classList.add(state === 'ok' ? 'ok' : state === 'err' ? 'err' : 'skip')
+        }
+        text.textContent = msg
+        tag.textContent  = tagTxt || ''
+      }
+
+      // Слушаем live-статус из main.js (во время launchGame)
+      window.electronAPI.onUpdateStatus((d) => {
+        switch (d.status) {
+          case 'check':    setBar('loading', d.detail, ''); break
+          case 'download': setBar('loading', d.detail, '↓'); break
+          case 'done':     setBar('ok',  d.detail, 'NEW'); break
+          case 'ok':       setBar('ok',  d.detail, '✓'); break
+          case 'skip':     setBar('skip', d.detail, '—'); break
+          case 'error':    setBar('err',  d.detail, '!'); break
+        }
+      })
+
+      // Превентивная проверка при загрузке лаунчера (до нажатия Play)
+      setBar('loading', 'Проверка обновлений...', '')
+      window.electronAPI.checkUpdate().then((res) => {
+        if (!res) { setBar('skip', 'Обновления недоступны', '—'); return }
+        if (res.skipped)        setBar('skip', 'Обновление пропущено', '—')
+        else if (res.updated)   setBar('ok',  `Обновлено: ${res.jarName}`, 'NEW')
+        else if (res.jarName)   setBar('ok',  `Актуальная версия`, '✓')
+        else                    setBar('skip', 'Используется локальная версия', '—')
+      }).catch(() => setBar('skip', 'Не удалось проверить обновления', '—'))
+    })()
+  </script>
+</body>
+</html>

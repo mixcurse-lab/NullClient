@@ -1,0 +1,11 @@
+{
+  "vertex": "delta:core/atmo/atmo_dawn_fog",
+  "fragment": "delta:core/atmo/atmo_dawn_fog",
+  "samplers": [
+    { "name": "ScreenTexture" },
+    { "name": "DepthTexture" }
+  ],
+  "uniforms": [
+    { "name": "AtmoUniforms", "type": "uniform_buffer", "count": 352, "values": [0.0] }
+  ]
+}

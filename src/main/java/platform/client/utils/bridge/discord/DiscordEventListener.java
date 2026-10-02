@@ -1,0 +1,29 @@
+package platform.client.utils.bridge.discord;
+
+import platform.api.auth.User_2;
+
+public interface DiscordEventListener {
+    default void a(User_2 user) {
+    }
+
+    default void a(String secret) {
+    }
+
+    default void b(String secret) {
+    }
+
+    default void b(User_2 user) {
+    }
+
+    default void a(int errorCode, String message) {
+    }
+
+    default void b(int errorCode, String message) {
+    }
+
+    default void a() {
+    }
+}
+
+
+

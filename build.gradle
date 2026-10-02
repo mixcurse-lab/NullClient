@@ -1,0 +1,130 @@
+plugins {
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	id 'maven-publish'
+}
+
+version = project.version
+group = project.group
+
+def bundledModsDir = file("bundled-mods")
+def bundledModJars = bundledModsDir.exists()
+        ? bundledModsDir.listFiles().findAll { it.isFile() && it.name.endsWith(".jar") }.sort { it.name }
+        : []
+def baritoneModJar = bundledModJars.find { it.name.startsWith("baritone-fabric-") }
+def bundledModsJson = groovy.json.JsonOutput.toJson(
+        bundledModJars.collect { [file: "META-INF/jars/${it.name}"] }
+)
+
+repositories {
+	mavenCentral()
+	maven { url = "https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/" }
+}
+
+loom {
+	mods {
+		"delta-client" {
+			sourceSet sourceSets.main
+		}
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	bundledModJars.each { bundledModJar ->
+		localRuntime(files(bundledModJar))
+	}
+	if (baritoneModJar != null) {
+		compileOnly(files(baritoneModJar))
+	}
+
+	implementation 'com.google.code.findbugs:jsr305:3.0.2'
+	implementation 'com.google.code.gson:gson:2.11.0'
+	implementation 'com.google.errorprone:error_prone_annotations:2.27.0'
+	implementation 'org.apache.commons:commons-lang3:3.18.0'
+	implementation 'org.apache.logging.log4j:log4j-api:2.24.1'
+	implementation 'org.java-websocket:Java-WebSocket:1.5.6'
+	implementation 'org.javassist:javassist:3.28.0-GA'
+	implementation 'org.json:json:20250107'
+	implementation 'org.jsoup:jsoup:1.18.3'
+	include 'org.json:json:20250107'
+	include 'org.jsoup:jsoup:1.18.3'
+	implementation 'org.reflections:reflections:0.10.2'
+	implementation 'org.slf4j:slf4j-api:2.0.6'
+	implementation 'com.googlecode.soundlibs:mp3spi:1.9.5.4'
+	include 'com.googlecode.soundlibs:mp3spi:1.9.5.4'
+	
+	compileOnly 'org.projectlombok:lombok:1.18.46'
+	annotationProcessor 'org.projectlombok:lombok:1.18.46'
+	compileOnly 'org.osgi:osgi.core:8.0.0'
+	compileOnly 'biz.aQute.bnd:biz.aQute.bnd.annotation:6.4.0'
+	compileOnly 'org.osgi:osgi.annotation:8.0.0'
+}
+
+processResources {
+	def version = project.version
+	inputs.property "version", version
+	inputs.property "bundled_mods_json", bundledModsJson
+
+	filesMatching("fabric.mod.json") {
+		expand "version": version
+	}
+	def resolvedBundledModsJson = bundledModsJson
+	doLast { task ->
+		def modJsonFile = new File(task.destinationDir, "fabric.mod.json")
+		if (modJsonFile.exists()) {
+			def slurper = new groovy.json.JsonSlurper()
+			def modJson = slurper.parse(modJsonFile, "UTF-8")
+			modJson.jars = slurper.parseText(resolvedBundledModsJson)
+			modJsonFile.setText(groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(modJson)), "UTF-8")
+		}
+	}
+}
+
+def targetJavaVersion = 25
+tasks.withType(JavaCompile).configureEach {
+	it.options.encoding = "UTF-8"
+	if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
+		it.options.release.set(targetJavaVersion)
+	}
+	it.options.compilerArgs << "-Xmaxerrs" << "9999999"
+}
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+	}
+	withSourcesJar()
+}
+
+jar {
+	def projectName = project.name
+	inputs.property "projectName", projectName
+
+	exclude 'com/mojang/blaze3d/vertex/BufferRenderer.class'
+	exclude 'com/mojang/blaze3d/vertex/BufferUploader.class'
+	exclude 'net/minecraft/client/renderer/MultiBufferSource.class'
+	exclude 'net/minecraft/client/renderer/MultiBufferSource$Immediate.class'
+	exclude 'net/minecraft/client/renderer/ShaderInstance.class'
+	exclude 'net/minecraft/client/renderer/ShaderKey.class'
+	exclude 'net/minecraft/client/renderer/ShaderShaderDefines.class'
+
+	from("LICENSE") {
+		rename { "${it}_$projectName"}
+	}
+	if (!bundledModJars.isEmpty()) {
+		from(bundledModJars) {
+			into "META-INF/jars"
+		}
+	}
+}
+
+publishing {
+	publications {
+		create("mavenJava", MavenPublication) {
+			from components.java
+		}
+	}
+}

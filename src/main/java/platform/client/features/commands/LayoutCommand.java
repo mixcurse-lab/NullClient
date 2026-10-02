@@ -1,0 +1,214 @@
+package platform.client.features.commands;
+
+import platform.api.module.Interface;
+
+import platform.inject.accessors.SlotAccessor;
+import static platform.api.module.Interface.aM_;
+import platform.client.Delta;
+import platform.client.utils.text.ChatUtil;
+
+import platform.api.command.BaseCommand;
+import platform.api.command.Command;
+import platform.api.event.interfaces.EventTarget;
+import platform.api.event.events.client.TickEvent;
+
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.context.CommandContext;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import lombok.Generated;
+import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.NonNullList;
+import net.minecraft.network.protocol.game.ServerboundContainerClosePacket;
+
+@Command(a = "layout")
+public class LayoutCommand extends BaseCommand {
+    private final List<a> c = new ArrayList();
+    private final List<a> d = new ArrayList();
+    private int e;
+
+    @Generated
+    public List<a> c() {
+        return this.c;
+    }
+
+    private void d() {
+        Delta.h().d().t().b("default");
+    }
+
+    private void a(List<a> layout) {
+        this.d.clear();
+        this.d.addAll(layout);
+        this.e = 0;
+    }
+
+    @Override
+    public void a(LiteralArgumentBuilder<CommandSourceStack> builder) {
+        builder.then(a("save").executes(context -> {
+            ChatUtil.a((Object) "Использование: .layout save <название>");
+            return 1;
+        }).then(d("название").executes(context2 -> {
+            String name = a((CommandContext<CommandSourceStack>) context2, "название");
+            List<a> layouts = this.c;
+            layouts.removeIf(layout -> {
+                return layout.a().equalsIgnoreCase(name);
+            });
+            for (Slot slot : aM_.player.containerMenu.slots) {
+if (slot.container == aM_.player.getInventory() && !slot.getItem().isEmpty()) {
+                layouts.add(new a(name, slot.getItem().copy(), slot.index));
+                }
+            }
+            d();
+            ChatUtil.a((Object) ("Раскладка &c" + name + " &7сохранена."));
+            return 1;
+        }))).then(a("load").executes(context3 -> {
+            ChatUtil.a((Object) "Использование: .layout load <название>");
+            return 1;
+        }).then(d("название").suggests(a(this::c, (v0) -> {
+            return v0.a();
+        })).executes(context4 -> {
+            String name = a((CommandContext<CommandSourceStack>) context4, "название");
+            List<a> target = this.c.stream().filter(layout -> {
+                return layout.a().equalsIgnoreCase(name);
+            }).toList();
+            if (target.isEmpty()) {
+                ChatUtil.a((Object) ("Раскладка &c" + name + " &7не найдена"));
+                return 1;
+            }
+            a(target);
+            return 1;
+        }))).then(a("remove").executes(context5 -> {
+            ChatUtil.a((Object) "Использование: .layout remove <название>");
+            return 1;
+        }).then(d("название").suggests(a(this::c, (v0) -> {
+            return v0.a();
+        })).executes(context6 -> {
+            String name = a((CommandContext<CommandSourceStack>) context6, "название");
+            List<a> layouts = this.c;
+            if (layouts.stream().noneMatch(layout -> {
+                return layout.a().equalsIgnoreCase(name);
+            })) {
+                ChatUtil.a((Object) ("Раскладка &c" + name + " &7не найдена"));
+                return 1;
+            }
+            layouts.removeIf(layout2 -> {
+                return layout2.a().equalsIgnoreCase(name);
+            });
+            d();
+            ChatUtil.a((Object) ("Раскладка &c" + name + " &7удалена"));
+            return 1;
+        }))).then(a("list").executes(context7 -> {
+            List<a> layouts = this.c;
+            if (layouts.isEmpty()) {
+                ChatUtil.a((Object) "Список раскладок пуст.");
+                return 1;
+            }
+            ChatUtil.a((Object) "Сохраненные раскладки:");
+            layouts.stream().map((v0) -> {
+                return v0.a();
+            }).distinct().forEach(name -> {
+                ChatUtil.a((Object) ("— &c" + name));
+            });
+            return 1;
+        })).then(a("clear").executes(context8 -> {
+            this.c.clear();
+            d();
+            ChatUtil.a((Object) "Раскладки очищены.");
+            return 1;
+        })).executes(context9 -> {
+            ChatUtil.a((Object) "Использование: .layout <save|load|remove|list|clear> <название>");
+            return 1;
+        });
+    }
+
+    @EventTarget
+    public void a(TickEvent event) {
+        if (!this.d.isEmpty()) {
+            int i = this.e;
+            this.e = i - 1;
+            if (i > 1) {
+                return;
+            }
+            this.e = 2;
+            NonNullList class_2371Var = aM_.player.containerMenu.slots;
+            List<String> missing = new ArrayList<>();
+            for (a info : this.d) {
+                Slot target = (Slot) class_2371Var.get(info.c());
+                Item item = info.b().getItem();
+                if (target.getItem().getItem() != item) {
+                    @SuppressWarnings("unchecked")
+                    List<Slot> slotList = (List<Slot>) (List<?>) class_2371Var;
+                    Slot source = slotList.stream()
+                            .filter(slot -> ((platform.inject.accessors.SlotAccessor) slot).getInventory() == aM_.player.getInventory())
+                            .filter(slot2 -> slot2.getItem().getItem() == item)
+                            .filter(slot3 -> this.d.stream().noneMatch(other -> other.c() == slot3.index && other.b().getItem() == slot3.getItem().getItem()))
+                            .findFirst().orElse(null);
+                    if (source != null) {
+                        int hotbar = (source.index == 36 || target.index == 36) ? (source.index == 37 || target.index == 37) ? 2 : 1 : 0;
+                        aM_.gameMode.handleContainerInput(aM_.player.containerMenu.containerId, source.index, hotbar, ContainerInput.SWAP, aM_.player);
+                        aM_.gameMode.handleContainerInput(aM_.player.containerMenu.containerId, target.index, hotbar, ContainerInput.SWAP, aM_.player);
+                        aM_.gameMode.handleContainerInput(aM_.player.containerMenu.containerId, source.index, hotbar, ContainerInput.SWAP, aM_.player);
+                        if (this.d.stream().noneMatch(other -> {
+                            return ((Slot) class_2371Var.get(other.c())).getItem().getItem() != other.b().getItem();
+                        })) {
+                            aM_.player.connection.send(new ServerboundContainerClosePacket(aM_.player.containerMenu.containerId));
+                            this.d.clear();
+                            return;
+                        }
+                        return;
+                    }
+                    String name = info.b().getHoverName().getString();
+                    if (!missing.contains(name)) {
+                        missing.add(name);
+                    }
+                }
+            }
+            if (missing.isEmpty()) {
+                ChatUtil.a((Object) "Раскладка разложена.");
+            } else {
+                ChatUtil.a((Object) "Раскладка разложена, не хватило:");
+                Iterator<String> it = missing.iterator();
+                while (it.hasNext()) {
+                    ChatUtil.a((Object) ("- &c" + it.next()));
+                }
+            }
+            this.d.clear();
+        }
+    }
+
+    public static class a {
+        private final String a;
+        private final ItemStack b;
+        private final int c;
+
+        @Generated
+        public a(String name, ItemStack stack, int slotId) {
+            this.a = name;
+            this.b = stack;
+            this.c = slotId;
+        }
+
+        @Generated
+        public String a() {
+            return this.a;
+        }
+
+        @Generated
+        public ItemStack b() {
+            return this.b;
+        }
+
+        @Generated
+        public int c() {
+            return this.c;
+        }
+    }
+}
+
+
+

@@ -1,0 +1,34 @@
+package platform.api.event.events.other;
+
+import platform.api.event.Event;
+import platform.api.event.interfaces.IEvent;
+
+import lombok.Generated;
+import net.minecraft.world.phys.HitResult;
+
+public class CrosshairTargetEvent extends Event implements IEvent {
+    private final float a;
+    private HitResult b;
+
+    @Generated
+    public void a(HitResult target) {
+        this.b = target;
+    }
+
+    @Generated
+    public float b() {
+        return this.a;
+    }
+
+    @Generated
+    public HitResult c() {
+        return this.b;
+    }
+
+    public CrosshairTargetEvent(float tickDelta) {
+        this.a = tickDelta;
+    }
+}
+
+
+

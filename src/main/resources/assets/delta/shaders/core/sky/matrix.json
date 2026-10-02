@@ -1,0 +1,8 @@
+{
+  "vertex": "delta:core/sky/sky",
+  "fragment": "delta:core/sky/matrix",
+  "samplers": [{ "name": "ScreenTexture" }, { "name": "DepthTexture" }],
+  "uniforms": [
+    { "name": "SkyUniforms", "type": "uniform_buffer", "count": 64, "values": [0.0] }
+  ]
+}

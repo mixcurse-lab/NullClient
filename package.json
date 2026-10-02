@@ -1,0 +1,38 @@
+{
+    "name":  "nullclient",
+    "version":  "1.0.3",
+    "description":  "NullClient Minecraft Launcher",
+    "main":  "main.js",
+    "scripts":  {
+                    "start":  "electron .",
+                    "build":  "electron-builder --win portable"
+                },
+    "devDependencies":  {
+                            "electron":  "^31.0.0",
+                            "electron-builder":  "^24.13.3"
+                        },
+    "build":  {
+                  "appId":  "xyz.nullclient.launcher",
+                  "productName":  "NullClient",
+                  "win":  {
+                              "target":  "portable",
+                              "icon":  "assets/app.ico"
+                          },
+                  "portable":  {
+                                   "artifactName":  "NullClient.exe"
+                               },
+                  "files":  [
+                                "main.js",
+                                "preload.js",
+                                "launcher.html"
+                            ],
+                  "extraResources":  [
+                                         {
+                                             "from":  "assets",
+                                             "to":  "assets"
+                                         }
+                                     ],
+                  "asar":  true,
+                  "compression":  "maximum"
+              }
+}

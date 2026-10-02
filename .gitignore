@@ -1,0 +1,30 @@
+# Gradle
+.gradle/
+build/
+!bundled-mods/
+
+# Node
+node_modules/
+dist/
+
+# Electron binaries
+NullClient.exe
+NullClient-updated.exe
+*.exe
+
+# IDE
+.idea/
+*.iml
+
+# Run dir (baritone cache etc.)
+run/
+
+# Logs
+*.log
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Secrets
+*.env
